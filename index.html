@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus Analytics — Customer Engagement Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: #1e2330;
+    --border2: #252c3a;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --accent3: #f59e0b;
+    --green: #10b981;
+    --red: #ef4444;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --muted2: #4b5563;
+    --card-glow: 0 0 0 1px var(--border), 0 4px 24px rgba(0,229,255,0.03);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.015) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Header */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,12,16,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-mark {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    flex-shrink: 0;
+  }
+
+  .logo-text {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .logo-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .live-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--green);
+    letter-spacing: 0.1em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .live-dot {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .last-updated {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  /* Filters Bar */
+  .filters-bar {
+    position: relative;
+    z-index: 10;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .filter-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  select, .btn-filter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  select:hover, .btn-filter:hover {
+    border-color: var(--accent);
+    background: rgba(0,229,255,0.04);
+  }
+
+  .date-range-btns {
+    display: flex;
+    gap: 2px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 2px;
+  }
+
+  .date-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 3px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .date-btn.active {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 500;
+  }
+
+  .date-btn:hover:not(.active) {
+    color: var(--text);
+  }
+
+  .filter-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--border);
+  }
+
+  /* Main content */
+  main {
+    position: relative;
+    z-index: 1;
+    padding: 24px 32px 48px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  /* Section headers */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    margin-top: 32px;
+  }
+
+  .section-header:first-child { margin-top: 0; }
+
+  .section-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 2px;
+  }
+
+  .tag-engagement { background: rgba(0,229,255,0.1); color: var(--accent); border: 1px solid rgba(0,229,255,0.2); }
+  .tag-journey { background: rgba(124,58,237,0.1); color: #a78bfa; border: 1px solid rgba(124,58,237,0.2); }
+  .tag-comms { background: rgba(245,158,11,0.1); color: var(--accent3); border: 1px solid rgba(245,158,11,0.2); }
+  .tag-retention { background: rgba(16,185,129,0.1); color: var(--green); border: 1px solid rgba(16,185,129,0.2); }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* Grid layouts */
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .grid-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+  .grid-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: var(--card-glow);
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .card:hover { border-color: var(--border2); }
+
+  .card-accent-line {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .line-cyan { background: linear-gradient(90deg, var(--accent), transparent); }
+  .line-purple { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .line-amber { background: linear-gradient(90deg, var(--accent3), transparent); }
+  .line-green { background: linear-gradient(90deg, var(--green), transparent); }
+
+  /* Metric cards */
+  .metric-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+
+  .metric-value {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .metric-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .delta {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+
+  .delta-up { background: rgba(16,185,129,0.15); color: var(--green); }
+  .delta-down { background: rgba(239,68,68,0.15); color: var(--red); }
+  .delta-neutral { background: rgba(107,114,128,0.15); color: var(--muted); }
+
+  /* Sparklines */
+  .sparkline-wrap {
+    margin-top: 14px;
+    height: 40px;
+  }
+
+  /* Progress bars */
+  .prog-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .prog-name {
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .prog-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .prog-track {
+    height: 4px;
+    background: var(--border2);
+    border-radius: 2px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .prog-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 1s ease;
+  }
+
+  /* Chart containers */
+  .chart-wrap {
+    position: relative;
+    margin-top: 16px;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-bottom: 4px;
+  }
+
+  .card-desc {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* Table */
+  .at-risk-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .at-risk-table th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    font-weight: 400;
+  }
+
+  .at-risk-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .at-risk-table tr:last-child td { border-bottom: none; }
+
+  .at-risk-table tr:hover td {
+    background: rgba(255,255,255,0.02);
+  }
+
+  .risk-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    padding: 3px 7px;
+    border-radius: 2px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .risk-high { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+  .risk-med { background: rgba(245,158,11,0.15); color: var(--accent3); border: 1px solid rgba(245,158,11,0.2); }
+  .risk-low { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.2); }
+
+  .score-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .score-track {
+    flex: 1;
+    height: 4px;
+    background: var(--border2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .score-fill {
+    height: 100%;
+    border-radius: 2px;
+  }
+
+  /* Gauge chart */
+  .gauge-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 8px 0;
+  }
+
+  /* Donut chart */
+  .donut-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+  }
+
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-right: 8px;
+  }
+
+  .legend-left {
+    display: flex;
+    align-items: center;
+    color: var(--muted);
+  }
+
+  .legend-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+  }
+
+  /* Ticket trend indicators */
+  .ticket-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ticket-row:last-child { border-bottom: none; }
+
+  .ticket-type {
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .ticket-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* Journey funnel */
+  .funnel-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .funnel-name {
+    font-size: 12px;
+    color: var(--text);
+    width: 140px;
+    flex-shrink: 0;
+  }
+
+  .funnel-bar-wrap {
+    flex: 1;
+    height: 28px;
+    background: var(--surface2);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .funnel-bar {
+    height: 100%;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    padding-left: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    transition: width 1s ease;
+  }
+
+  .funnel-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    width: 40px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* Cohort heatmap */
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: 70px repeat(8, 1fr);
+    gap: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+  }
+
+  .hm-header {
+    color: var(--muted);
+    text-align: center;
+    padding: 3px 0;
+  }
+
+  .hm-label {
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    font-size: 9px;
+  }
+
+  .hm-cell {
+    height: 28px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 500;
+    transition: opacity 0.2s;
+    cursor: default;
+  }
+
+  .hm-cell:hover { opacity: 0.8; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* Responsive */
+  @media (max-width: 1100px) {
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    .grid-2-1, .grid-1-2 { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 640px) {
+    .grid-4, .grid-3 { grid-template-columns: 1fr; }
+    main { padding: 16px; }
+    header, .filters-bar { padding-left: 16px; padding-right: 16px; }
+  }
+
+  /* Animate in */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card {
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .card:nth-child(1) { animation-delay: 0.05s; }
+  .card:nth-child(2) { animation-delay: 0.10s; }
+  .card:nth-child(3) { animation-delay: 0.15s; }
+  .card:nth-child(4) { animation-delay: 0.20s; }
+  .card:nth-child(5) { animation-delay: 0.25s; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark"></div>
+    <div>
+      <div class="logo-text">Nexus CRM</div>
+      <div class="logo-sub">Engagement Intelligence</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      LIVE
+    </div>
+    <div class="last-updated">Updated 2 min ago</div>
+  </div>
+</header>
+
+<!-- FILTERS -->
+<div class="filters-bar">
+  <div class="filter-group">
+    <span class="filter-label">Period</span>
+    <div class="date-range-btns" id="dateRange">
+      <button class="date-btn" onclick="setDate(this,'7D')">7D</button>
+      <button class="date-btn active" onclick="setDate(this,'30D')">30D</button>
+      <button class="date-btn" onclick="setDate(this,'90D')">90D</button>
+      <button class="date-btn" onclick="setDate(this,'YTD')">YTD</button>
+    </div>
+  </div>
+  <div class="filter-divider"></div>
+  <div class="filter-group">
+    <span class="filter-label">Segment</span>
+    <select id="segmentFilter" onchange="applyFilters()">
+      <option value="all">All Segments</option>
+      <option value="enterprise">Enterprise (500+ seats)</option>
+      <option value="mid">Mid-Market (50–499)</option>
+      <option value="smb">SMB (1–49)</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Cohort</span>
+    <select id="cohortFilter" onchange="applyFilters()">
+      <option value="all">All Cohorts</option>
+      <option value="q1-25">Q1 2025</option>
+      <option value="q2-25">Q2 2025</option>
+      <option value="q3-25">Q3 2025</option>
+      <option value="q4-25">Q4 2025</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Plan</span>
+    <select id="planFilter" onchange="applyFilters()">
+      <option value="all">All Plans</option>
+      <option value="growth">Growth</option>
+      <option value="pro">Pro</option>
+      <option value="elite">Elite</option>
+    </select>
+  </div>
+</div>
+
+<main>
+
+  <!-- ENGAGEMENT METRICS -->
+  <div class="section-header">
+    <span class="section-tag tag-engagement">01</span>
+    <span class="section-title">Engagement Metrics</span>
+  </div>
+
+  <div class="grid-4" id="engagementMetrics">
+    <div class="card">
+      <div class="card-accent-line line-cyan"></div>
+      <div class="metric-label">DAU / MAU Ratio</div>
+      <div class="metric-value" style="color:var(--accent)" id="dauMau">42.7%</div>
+      <div class="metric-sub">
+        <span class="delta delta-up">▲ 3.2pp</span>
+        vs prior period
+      </div>
+      <div class="sparkline-wrap">
+        <canvas id="sparkDAU" height="40"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-accent-line line-cyan"></div>
+      <div class="metric-label">Avg Session Duration</div>
+      <div class="metric-value" id="sessionDur">18m 42s</div>
+      <div class="metric-sub">
+        <span class="delta delta-up">▲ 1m 08s</span>
+        vs prior period
+      </div>
+      <div class="sparkline-wrap">
+        <canvas id="sparkSession" height="40"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-accent-line line-cyan"></div>
+      <div class="metric-label">Feature Adoption Rate</div>
+      <div class="metric-value" id="featureAdopt">68.3%</div>
+      <div class="metric-sub">
+        <span class="delta delta-up">▲ 5.1pp</span>
+        core features used
+      </div>
+      <div class="sparkline-wrap">
+        <canvas id="sparkFeature" height="40"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-accent-line line-cyan"></div>
+      <div class="metric-label">Weekly Active Users</div>
+      <div class="metric-value" id="wauVal">2,841</div>
+      <div class="metric-sub">
+        <span class="delta delta-down">▼ 47</span>
+        vs last week
+      </div>
+      <div class="sparkline-wrap">
+        <canvas id="sparkWAU" height="40"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature adoption breakdown + DAU trend -->
+  <div class="grid-2-1" style="margin-top:12px">
+    <div class="card">
+      <div class="card-accent-line line-cyan"></div>
+      <div class="card-title">Daily Active Users — 30 Day Trend</div>
+      <div class="card-desc">Unique logins per day across all customer accounts</div>
+      <div class="chart-wrap">
+        <canvas id="dauChart" height="140"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-accent-line line-cyan"></div>
+      <div class="card-title">Feature Adoption Breakdown</div>
+      <div class="card-desc">% of accounts using each module in period</div>
+      <div style="margin-top:12px">
+        <div class="prog-label"><span class="prog-name">Pipeline Manager</span><span class="prog-val">91%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:91%;background:var(--accent)"></div></div>
+        <div class="prog-label"><span class="prog-name">Email Sequences</span><span class="prog-val">78%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:78%;background:var(--accent)"></div></div>
+        <div class="prog-label"><span class="prog-name">AI Deal Coach</span><span class="prog-val">64%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:64%;background:#7c5bf0"></div></div>
+        <div class="prog-label"><span class="prog-name">Revenue Forecast</span><span class="prog-val">52%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:52%;background:#7c5bf0"></div></div>
+        <div class="prog-label"><span class="prog-name">API Integrations</span><span class="prog-val">38%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:38%;background:var(--muted2)"></div></div>
+        <div class="prog-label"><span class="prog-name">Custom Reports</span><span class="prog-val">29%</span></div>
+        <div class="prog-track"><div class="prog-fill" style="width:29%;background:var(--muted2)"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOMER JOURNEY -->
+  <div class="section-header">
+    <span class="section-tag tag-journey">02</span>
+    <span class="section-title">Customer Journey</span>
+  </div>
+
+  <div class="grid-4">
+    <div class="card">
+      <div class="card-accent-line line-purple"></div>
+      <div class="metric-label">Activation Rate</div>
+      <div class="metric-value" style="color:#a78bfa" id="activationRate">73.5%</div>
+      <div class="metric-sub">
+        <span class="delta delta-up">▲ 2.8pp</span>
+        within 14 days
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-accent-line line-purple"></div>
+      <div class="metric-label">Avg Time-to-Value</div>
+      <div class="metric-value" id="timeToValue">6.2d</div>
+      <div class="metric-sub">
+        <span class="delta delta-up">▼ 0.8d</span>
+        faster = better
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-accent-line line-purple"></div>
+      <div class="metric-label">Milestone Completion</div>
+      <div class="metric-value" id="milestoneComp">61.4%</div>
+      <div class="metric-sub">
+        <span class="delta delta-neutral">→ +0.3pp</span>
+        all onboarding steps
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-accent-line line-purple"></div>
+      <div class="metric-label">Avg Onboarding NPS</div>
+      <div class="metric-value" id="onboardNps">+54</div>
+      <div class="metric-sub">
+        <span class="delta delta-up">▲ 6pts</span>
+        vs prior cohort
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-1-2" style="margin-top:12px">
+    <div class="card">
+      <div class="card-accent-line line-purple"></div>
+      <div class="card-title">Onboarding Funnel</div>
+      <div class="card-desc">Step completion rates, new accounts this period</div>
+      <div style="margin-top: 16px">
+        <div class="funnel-step">
+          <span class="funnel-name">Account Created</span>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar" style="width:100%;background:rgba(124,58,237,0.35);color:#c4b5fd">100%</div>
+          </div>
+          <span class="funnel-pct">100%</span>
+        </div>
+        <div class="funnel-step">
+          <span class="funnel-name">Profile Setup</span>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar" style="width:88%;background:rgba(124,58,237,0.3);color:#c4b5fd">88%</div>
+          </div>
+          <span class="funnel-pct">88%</span>
+        </div>
+        <div class="funnel-step">
+          <span class="funnel-name">First Pipeline</span>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar" style="width:74%;background:rgba(124,58,237,0.25);color:#c4b5fd">74%</div>
+          </div>
+          <span class="funnel-pct">74%</span>
+        </div>
+        <div class="funnel-step">
+          <span class="funnel-name">Invite Team</span>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar" style="width:61%;background:rgba(124,58,237,0.2);color:#c4b5fd">61%</div>
+          </div>
+          <span class="funnel-pct">61%</span>
+        </div>
+        <div class="funnel-step">
+          <span class="funnel-name">First Deal Won</span>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar" style="width:47%;background:rgba(124,58,237,0.15);color:#c4b5fd">47%</div>
+          </div>
+          <span class="funnel-pct">47%</span>
+        </div>
+        <div class="funnel-step">
+          <span class="funnel-name">API Connected</span>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar" style="width:38%;background:rgba(124,58,237,0.1);color:#c4b5fd">38%</div>
+          </div>
+          <span class="funnel-pct">38%</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-accent-line line-purple"></div>
+      <div class="card-title">Retention Cohort Heatmap</div>
+      <div class="card-desc">% of cohort still active by week — darker = higher retention</div>
+      <div style="margin-top: 16px">
+        <div class="heatmap-grid" id="cohortHeatmap">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMMUNICATION EFFECTIVENESS -->
+  <div class="section-header">
+    <span class="section-tag tag-comms">03</span>
+    <span class="section-title">Communication Effectiveness</span>
+  </div>
+
+  <div class="grid-4">
+    <div class="card">
+      <div class="card-accent-line line-amber"></div>
+      <div class="metric-label">Email Open Rate</div>
+      <div class="metric-value" style="color:var(--accent3)" id="emailOpen">38.4%</div>
+      <div class="metric-sub">
+        <span class="delta delta-up">▲ 4.1pp</span>
+        industry avg: 21%
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-accent-line line-amber"></div>
+      <div class="metric-label">Email Click Rate</div>
+      <div class="metric-value" id="emailClick">12.7%</div>
+      <div class="metric-sub">
+        <span class="delta delta-up">▲ 1.9pp</span>
+        of opened emails
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-accent-line line-amber"></div>
+      <div class="metric-label">In-App Msg CTR</div>
+      <div class="metric-value" id="inAppCtr">24.1%</div>
+      <div class="metric-sub">
+        <span class="delta delta-down">▼ 0.7pp</span>
+        tooltips + banners
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-accent-line line-amber"></div>
+      <div class="metric-label">Unsubscribe Rate</div>
+      <div class="metric-value" id="unsubRate">0.31%</div>
+      <div class="metric-sub">
+        <span class="delta delta-up">▼ 0.04pp</span>
+        of delivered emails
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-3" style="margin-top:12px">
+    <div class="card">
+      <div class="card-accent-line line-amber"></div>
+      <div class="card-title">Email Campaign Performance</div>
+      <div class="card-desc">Open vs click rate by campaign type</div>
+      <div class="chart-wrap">
+        <canvas id="emailChart" height="160"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-accent-line line-amber"></div>
+      <div class="card-title">In-App Message Breakdown</div>
+      <div class="card-desc">CTR by message type</div>
+      <canvas id="inAppDonut" height="140" style="margin-top:8px"></canvas>
+      <div class="donut-legend" id="inAppLegend"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-accent-line line-amber"></div>
+      <div class="card-title">Support Ticket Trends</div>
+      <div class="card-desc">Volume by category this period</div>
+      <div style="margin-top: 8px" id="ticketList">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- RETENTION SIGNALS -->
+  <div class="section-header">
+    <span class="section-tag tag-retention">04</span>
+    <span class="section-title">Retention Signals</span>
+  </div>
+
+  <div class="grid-4">
+    <div class="card">
+      <div class="card-accent-line line-green"></div>
+      <div class="metric-label">30-Day Retention</div>
+      <div class="metric-value" style="color:var(--green)" id="ret30">87.2%</div>
+      <div class="metric-sub">
+        <span class="delta delta-up">▲ 1.4pp</span>
+        account-level
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-accent-line line-green"></div>
+      <div class="metric-label">Avg Login Frequency</div>
+      <div class="metric-value" id="loginFreq">4.3×/wk</div>
+      <div class="metric-sub">
+        <span class="delta delta-neutral">→ no change</span>
+        per active user
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-accent-line line-green"></div>
+      <div class="metric-label">Avg Engagement Score</div>
+      <div class="metric-value" id="engScore">74 / 100</div>
+      <div class="metric-sub">
+        <span class="delta delta-up">▲ 3pts</span>
+        composite metric
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-accent-line line-green"></div>
+      <div class="metric-label">At-Risk Accounts</div>
+      <div class="metric-value" style="color:var(--red)" id="atRiskCount">18</div>
+      <div class="metric-sub">
+        <span class="delta delta-down">▲ 3</span>
+        vs last period
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2-1" style="margin-top:12px">
+    <div class="card">
+      <div class="card-accent-line line-green"></div>
+      <div class="card-title">At-Risk Accounts</div>
+      <div class="card-desc">Accounts with declining engagement requiring intervention</div>
+      <div style="margin-top:12px;overflow-x:auto">
+        <table class="at-risk-table" id="atRiskTable">
+          <thead>
+            <tr>
+              <th>Account</th>
+              <th>Segment</th>
+              <th>Last Login</th>
+              <th>Eng. Score</th>
+              <th>Risk</th>
+            </tr>
+          </thead>
+          <tbody id="atRiskBody"><!-- populated by JS --></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-accent-line line-green"></div>
+      <div class="card-title">Login Frequency Distribution</div>
+      <div class="card-desc">Users by weekly login count</div>
+      <div class="chart-wrap">
+        <canvas id="loginDistChart" height="180"></canvas>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ============================================================
+// DATA LAYER
+// ============================================================
+const BASE_DATA = {
+  all: {
+    dauMau: 42.7, sessionDur: '18m 42s', featureAdopt: 68.3, wau: 2841,
+    activationRate: 73.5, timeToValue: 6.2, milestoneComp: 61.4, onboardNps: 54,
+    emailOpen: 38.4, emailClick: 12.7, inAppCtr: 24.1, unsubRate: 0.31,
+    ret30: 87.2, loginFreq: '4.3×/wk', engScore: 74, atRiskCount: 18,
+  },
+  enterprise: {
+    dauMau: 51.2, sessionDur: '24m 10s', featureAdopt: 81.0, wau: 892,
+    activationRate: 82.1, timeToValue: 4.8, milestoneComp: 74.2, onboardNps: 61,
+    emailOpen: 41.0, emailClick: 14.8, inAppCtr: 28.3, unsubRate: 0.18,
+    ret30: 93.4, loginFreq: '5.8×/wk', engScore: 86, atRiskCount: 5,
+  },
+  mid: {
+    dauMau: 38.4, sessionDur: '17m 30s', featureAdopt: 63.7, wau: 1204,
+    activationRate: 71.0, timeToValue: 6.8, milestoneComp: 58.1, onboardNps: 51,
+    emailOpen: 36.9, emailClick: 11.4, inAppCtr: 22.8, unsubRate: 0.28,
+    ret30: 84.7, loginFreq: '3.9×/wk', engScore: 70, atRiskCount: 8,
+  },
+  smb: {
+    dauMau: 29.1, sessionDur: '12m 05s', featureAdopt: 49.2, wau: 745,
+    activationRate: 58.2, timeToValue: 8.4, milestoneComp: 44.8, onboardNps: 46,
+    emailOpen: 34.1, emailClick: 9.8, inAppCtr: 18.7, unsubRate: 0.44,
+    ret30: 76.3, loginFreq: '2.4×/wk', engScore: 54, atRiskCount: 5,
+  }
+};
+
+const AT_RISK_ACCOUNTS = [
+  { name: 'Meridian Corp', segment: 'Enterprise', lastLogin: '12 days ago', score: 28, risk: 'high' },
+  { name: 'BlueSky Logistics', segment: 'Mid-Market', lastLogin: '8 days ago', score: 34, risk: 'high' },
+  { name: 'Apex Systems', segment: 'Mid-Market', lastLogin: '6 days ago', score: 41, risk: 'med' },
+  { name: 'Orion Partners', segment: 'SMB', lastLogin: '5 days ago', score: 47, risk: 'med' },
+  { name: 'Cascade Tech', segment: 'Enterprise', lastLogin: '4 days ago', score: 51, risk: 'med' },
+  { name: 'Vortex Digital', segment: 'SMB', lastLogin: '3 days ago', score: 55, risk: 'low' },
+  { name: 'Pinnacle Group', segment: 'Mid-Market', lastLogin: '3 days ago', score: 58, risk: 'low' },
+];
+
+const TICKET_DATA = [
+  { type: 'Billing & Plans', count: 142, delta: -8 },
+  { type: 'Integration Issues', count: 97, delta: +12 },
+  { type: 'Feature Requests', count: 231, delta: +4 },
+  { type: 'Bug Reports', count: 63, delta: -22 },
+  { type: 'Onboarding Help', count: 88, delta: -14 },
+];
+
+// ============================================================
+// CHART HELPERS
+// ============================================================
+function sparkline(canvas, data, color) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 200;
+  const H = canvas.offsetHeight || 40;
+  canvas.width = W;
+  canvas.height = H;
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = max - min || 1;
+  const step = W / (data.length - 1);
+
+  ctx.clearRect(0,0,W,H);
+
+  // Fill
+  ctx.beginPath();
+  data.forEach((v,i) => {
+    const x = i * step;
+    const y = H - ((v-min)/range)*(H-8) - 4;
+    i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.lineTo(W, H);
+  ctx.lineTo(0, H);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0, color + '40');
+  grad.addColorStop(1, color + '00');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  data.forEach((v,i) => {
+    const x = i * step;
+    const y = H - ((v-min)/range)*(H-8) - 4;
+    i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function lineChart(canvas, labels, datasets, height) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 600;
+  const H = height || 140;
+  canvas.width = W;
+  canvas.height = H;
+
+  const pad = { t: 8, r: 12, b: 32, l: 44 };
+  const chartW = W - pad.l - pad.r;
+  const chartH = H - pad.t - pad.b;
+
+  ctx.clearRect(0,0,W,H);
+
+  const allVals = datasets.flatMap(d => d.data);
+  const min = 0, max = Math.max(...allVals) * 1.1;
+
+  // Grid lines
+  const gridCount = 4;
+  for (let i = 0; i <= gridCount; i++) {
+    const y = pad.t + chartH - (i/gridCount) * chartH;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, y);
+    ctx.lineTo(pad.l + chartW, y);
+    ctx.strokeStyle = '#1e2330';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    const val = Math.round(min + (i/gridCount) * (max-min));
+    ctx.fillStyle = '#4b5563';
+    ctx.font = '9px JetBrains Mono';
+    ctx.textAlign = 'right';
+    ctx.fillText(val, pad.l - 6, y + 3);
+  }
+
+  // X labels
+  const step = chartW / (labels.length - 1);
+  labels.forEach((lbl, i) => {
+    if (i % Math.ceil(labels.length / 7) !== 0) return;
+    const x = pad.l + i * step;
+    ctx.fillStyle = '#4b5563';
+    ctx.font = '9px JetBrains Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(lbl, x, H - 10);
+  });
+
+  // Lines
+  datasets.forEach(ds => {
+    const step2 = chartW / (ds.data.length - 1);
+    ctx.beginPath();
+    ds.data.forEach((v,i) => {
+      const x = pad.l + i * step2;
+      const y = pad.t + chartH - ((v-min)/(max-min)) * chartH;
+      i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    });
+    const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + chartH);
+    grad.addColorStop(0, ds.color + '30');
+    grad.addColorStop(1, ds.color + '00');
+    ctx.strokeStyle = ds.color;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // fill
+    ctx.lineTo(pad.l + (ds.data.length-1)*step2, pad.t + chartH);
+    ctx.lineTo(pad.l, pad.t + chartH);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+  });
+}
+
+function barChart(canvas, labels, datasets, height) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 400;
+  const H = height || 160;
+  canvas.width = W;
+  canvas.height = H;
+  ctx.clearRect(0,0,W,H);
+
+  const pad = { t:8, r:8, b:28, l:8 };
+  const chartW = W - pad.l - pad.r;
+  const chartH = H - pad.t - pad.b;
+  const n = labels.length;
+  const dsCount = datasets.length;
+  const groupW = chartW / n;
+  const barW = groupW * 0.7 / dsCount;
+  const gap = groupW * 0.15;
+  const maxVal = Math.max(...datasets.flatMap(d=>d.data)) * 1.15;
+
+  labels.forEach((lbl,i) => {
+    const gx = pad.l + i * groupW + gap;
+    datasets.forEach((ds,j) => {
+      const v = ds.data[i];
+      const bh = (v/maxVal)*chartH;
+      const x = gx + j*(barW+2);
+      const y = pad.t + chartH - bh;
+
+      const grad = ctx.createLinearGradient(x, y, x, y+bh);
+      grad.addColorStop(0, ds.color);
+      grad.addColorStop(1, ds.color+'80');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(x, y, barW, bh, 2);
+      ctx.fill();
+    });
+    ctx.fillStyle = '#4b5563';
+    ctx.font = '9px JetBrains Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(lbl, pad.l + i*groupW + groupW/2, H-10);
+  });
+}
+
+function donutChart(canvas, data, colors, size) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 200;
+  const H = size || 140;
+  canvas.width = W;
+  canvas.height = H;
+  ctx.clearRect(0,0,W,H);
+
+  const cx = W/2, cy = H/2, r = Math.min(W,H)/2 - 10, ir = r*0.58;
+  const total = data.reduce((a,b)=>a+b.value,0);
+  let angle = -Math.PI/2;
+
+  data.forEach((d,i) => {
+    const slice = (d.value/total)*Math.PI*2;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx, cy, r, angle, angle+slice);
+    ctx.closePath();
+    ctx.fillStyle = colors[i];
+    ctx.fill();
+    angle += slice;
+  });
+
+  // Donut hole
+  ctx.beginPath();
+  ctx.arc(cx,cy,ir,0,Math.PI*2);
+  ctx.fillStyle = '#111318';
+  ctx.fill();
+
+  // Center text
+  ctx.fillStyle = '#e8eaf0';
+  ctx.font = 'bold 14px Syne';
+  ctx.textAlign = 'center';
+  ctx.fillText(total+'%', cx, cy+3);
+  ctx.fillStyle = '#6b7280';
+  ctx.font = '8px JetBrains Mono';
+  ctx.fillText('AVG CTR', cx, cy+16);
+}
+
+function loginDistChart(canvas) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 300;
+  const H = 180;
+  canvas.width = W;
+  canvas.height = H;
+  ctx.clearRect(0,0,W,H);
+
+  const bins = ['0×','1×','2×','3×','4×','5×','6×','7+×'];
+  const vals = [5, 8, 14, 22, 28, 13, 7, 3];
+  const maxV = Math.max(...vals);
+  const pad = {t:8,r:8,b:28,l:8};
+  const bw = (W-pad.l-pad.r)/bins.length - 4;
+  const ch = H-pad.t-pad.b;
+
+  vals.forEach((v,i) => {
+    const bh = (v/maxV)*ch;
+    const x = pad.l + i*(bw+4);
+    const y = pad.t + ch - bh;
+    const pct = v/(vals.reduce((a,b)=>a+b))*100;
+    const grad = ctx.createLinearGradient(x,y,x,y+bh);
+    grad.addColorStop(0,'#10b981');
+    grad.addColorStop(1,'#10b98140');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(x, y, bw, bh, 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#4b5563';
+    ctx.font = '9px JetBrains Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(bins[i], x+bw/2, H-10);
+  });
+}
+
+// ============================================================
+// COHORT HEATMAP
+// ============================================================
+function buildCohortHeatmap() {
+  const el = document.getElementById('cohortHeatmap');
+  const cohorts = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
+  const weeks = ['W1','W2','W3','W4','W5','W6','W7','W8'];
+
+  const data = [
+    [100,82,74,68,63,59,55,52],
+    [100,85,77,71,65,61,57,null],
+    [100,81,73,67,62,58,null,null],
+    [100,86,79,72,67,null,null,null],
+    [100,84,76,70,null,null,null,null],
+    [100,88,80,null,null,null,null,null],
+    [100,83,null,null,null,null,null,null],
+    [100,null,null,null,null,null,null,null],
+  ];
+
+  const heatColor = (v) => {
+    if (v === null) return 'transparent';
+    const r = Math.round(16 + (v/100)*0);
+    const g = Math.round(60 + (v/100)*125);
+    const b = Math.round(72 + (v/100)*57);
+    const alpha = 0.15 + (v/100)*0.65;
+    return `rgba(${r},${g},${b},${alpha})`;
+  };
+
+  // Header row
+  el.innerHTML = '';
+  el.appendChild(Object.assign(document.createElement('div'), {className:'hm-header'}));
+  weeks.forEach(w => {
+    el.appendChild(Object.assign(document.createElement('div'), {className:'hm-header',textContent:w}));
+  });
+
+  data.forEach((row,i) => {
+    const lbl = Object.assign(document.createElement('div'), {className:'hm-label',textContent:cohorts[i]});
+    el.appendChild(lbl);
+    row.forEach(v => {
+      const cell = document.createElement('div');
+      cell.className = 'hm-cell';
+      cell.style.background = heatColor(v);
+      cell.style.color = v !== null && v > 50 ? '#e8eaf0' : '#6b7280';
+      cell.textContent = v !== null ? v+'%' : '';
+      el.appendChild(cell);
+    });
+  });
+}
+
+// ============================================================
+// POPULATE TABLES
+// ============================================================
+function buildAtRiskTable() {
+  const body = document.getElementById('atRiskBody');
+  body.innerHTML = '';
+  AT_RISK_ACCOUNTS.forEach(acc => {
+    const scoreColor = acc.score < 40 ? '#ef4444' : acc.score < 55 ? '#f59e0b' : '#10b981';
+    body.innerHTML += `
+      <tr>
+        <td>${acc.name}</td>
+        <td style="color:var(--muted)">${acc.segment}</td>
+        <td style="font-family:JetBrains Mono,monospace;font-size:11px;color:var(--muted)">${acc.lastLogin}</td>
+        <td>
+          <div class="score-bar">
+            <div class="score-track">
+              <div class="score-fill" style="width:${acc.score}%;background:${scoreColor}"></div>
+            </div>
+            <span style="font-family:JetBrains Mono,monospace;font-size:11px;color:${scoreColor};min-width:26px">${acc.score}</span>
+          </div>
+        </td>
+        <td><span class="risk-badge risk-${acc.risk}">${acc.risk}</span></td>
+      </tr>`;
+  });
+}
+
+function buildTicketList() {
+  const el = document.getElementById('ticketList');
+  el.innerHTML = '';
+  TICKET_DATA.forEach(t => {
+    const dColor = t.delta < 0 ? 'var(--green)' : t.delta > 0 ? 'var(--red)' : 'var(--muted)';
+    const dSign = t.delta > 0 ? '+' : '';
+    el.innerHTML += `
+      <div class="ticket-row">
+        <div>
+          <div class="ticket-type">${t.type}</div>
+          <div style="font-family:JetBrains Mono,monospace;font-size:10px;color:${dColor}">${dSign}${t.delta} vs prior</div>
+        </div>
+        <div class="ticket-num">${t.count}</div>
+      </div>`;
+  });
+}
+
+function buildInAppLegend() {
+  const items = [
+    {name:'Feature Tooltips', value:31, color:'#00e5ff'},
+    {name:'Upsell Banners', value:27, color:'#7c3aed'},
+    {name:'Onboarding Prompts', value:24, color:'#f59e0b'},
+    {name:'Product Announcements', value:18, color:'#10b981'},
+  ];
+  const el = document.getElementById('inAppLegend');
+  el.innerHTML = '';
+  items.forEach(it => {
+    el.innerHTML += `
+      <div class="legend-item">
+        <div class="legend-left">
+          <div class="legend-dot" style="background:${it.color}"></div>
+          ${it.name}
+        </div>
+        <span class="legend-val">${it.value}%</span>
+      </div>`;
+  });
+}
+
+// ============================================================
+// GENERATE FAKE SERIES
+// ============================================================
+function noisyLine(base, len, variance) {
+  return Array.from({length: len}, (_,i) => {
+    return Math.max(0, base + (Math.random()-0.5)*variance*2 + i*(variance*0.05));
+  });
+}
+
+const DAY_LABELS = Array.from({length:30},(_,i)=>{
+  const d = new Date(); d.setDate(d.getDate()-29+i);
+  return (d.getMonth()+1)+'/'+(d.getDate());
+});
+
+// ============================================================
+// UPDATE METRICS
+// ============================================================
+function updateMetrics(seg) {
+  const d = BASE_DATA[seg] || BASE_DATA.all;
+  animateVal('dauMau', d.dauMau.toFixed(1)+'%');
+  document.getElementById('sessionDur').textContent = d.sessionDur;
+  animateVal('featureAdopt', d.featureAdopt.toFixed(1)+'%');
+  animateVal('wauVal', d.wau.toLocaleString());
+  animateVal('activationRate', d.activationRate.toFixed(1)+'%');
+  document.getElementById('timeToValue').textContent = d.timeToValue+'d';
+  animateVal('milestoneComp', d.milestoneComp.toFixed(1)+'%');
+  document.getElementById('onboardNps').textContent = '+'+d.onboardNps;
+  animateVal('emailOpen', d.emailOpen.toFixed(1)+'%');
+  animateVal('emailClick', d.emailClick.toFixed(1)+'%');
+  animateVal('inAppCtr', d.inAppCtr.toFixed(1)+'%');
+  document.getElementById('unsubRate').textContent = d.unsubRate+'%';
+  animateVal('ret30', d.ret30.toFixed(1)+'%');
+  document.getElementById('loginFreq').textContent = d.loginFreq;
+  document.getElementById('engScore').textContent = d.engScore+' / 100';
+  animateVal('atRiskCount', d.atRiskCount);
+}
+
+function animateVal(id, target) {
+  const el = document.getElementById(id);
+  el.style.opacity = 0.5;
+  setTimeout(() => {
+    el.textContent = target;
+    el.style.opacity = 1;
+    el.style.transition = 'opacity 0.3s';
+  }, 150);
+}
+
+// ============================================================
+// RENDER ALL CHARTS
+// ============================================================
+function renderCharts() {
+  setTimeout(() => {
+    // Sparklines
+    sparkline(document.getElementById('sparkDAU'), noisyLine(0.42,16,0.08), '#00e5ff');
+    sparkline(document.getElementById('sparkSession'), noisyLine(18,16,3), '#00e5ff');
+    sparkline(document.getElementById('sparkFeature'), noisyLine(63,16,6), '#00e5ff');
+    sparkline(document.getElementById('sparkWAU'), noisyLine(2800,16,150), '#00e5ff');
+
+    // DAU trend
+    lineChart(
+      document.getElementById('dauChart'),
+      DAY_LABELS,
+      [{data: noisyLine(2800,30,200), color:'#00e5ff'}],
+      140
+    );
+
+    // Email bar chart
+    const emailLabels = ['Welcome','Feature','Upsell','Newsletter','Re-engage','Milestone'];
+    barChart(
+      document.getElementById('emailChart'),
+      emailLabels,
+      [
+        {data:[42,38,35,29,31,44], color:'#f59e0b'},
+        {data:[16,12,10,8,11,14], color:'#7c3aed'},
+      ],
+      160
+    );
+
+    // In-app donut
+    const inAppItems = [
+      {value:31},{value:27},{value:24},{value:18}
+    ];
+    const inAppColors = ['#00e5ff','#7c3aed','#f59e0b','#10b981'];
+    donutChart(document.getElementById('inAppDonut'), inAppItems, inAppColors, 140);
+
+    // Login dist
+    loginDistChart(document.getElementById('loginDistChart'));
+
+  }, 50);
+}
+
+// ============================================================
+// FILTERS
+// ============================================================
+function applyFilters() {
+  const seg = document.getElementById('segmentFilter').value;
+  updateMetrics(seg);
+  renderCharts();
+}
+
+function setDate(btn, range) {
+  document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // In a real app, refetch data for the selected range
+  applyFilters();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', () => {
+  buildCohortHeatmap();
+  buildAtRiskTable();
+  buildTicketList();
+  buildInAppLegend();
+  updateMetrics('all');
+  renderCharts();
+});
+
+window.addEventListener('resize', () => {
+  renderCharts();
+});
+</script>
+</body>
+</html>
